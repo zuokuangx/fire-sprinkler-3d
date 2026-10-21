@@ -16,12 +16,10 @@
 <body>
 <div id="app" data-view="3d" data-device="desktop">
 
-  <!-- ========== 3D 画布 ========== -->
   <div id="scene-host" aria-label="三维场景">
     <canvas id="scene-canvas" touch-action="none"></canvas>
   </div>
 
-  <!-- ========== 加载页 ========== -->
   <div id="loading">
     <div class="loading-inner">
       <div class="loading-mark">
@@ -38,7 +36,6 @@
     </div>
   </div>
 
-  <!-- ========== 顶栏 ========== -->
   <header id="topbar">
     <div id="brand">
       <div class="brand-logo" aria-hidden="true">
@@ -83,7 +80,6 @@
     </div>
   </header>
 
-  <!-- ========== 左侧工具轨 / 手机底部导航 ========== -->
   <nav id="rail" aria-label="功能面板">
     <button type="button" data-tab="layers" aria-pressed="false">
       <svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M3 12l9 5 9-5M3 16.5l9 5 9-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
@@ -107,7 +103,6 @@
     </button>
   </nav>
 
-  <!-- ========== 右侧面板 ========== -->
   <aside id="panel" aria-label="信息面板">
     <div id="drawer-handle" aria-hidden="true"></div>
     <div class="panel-head">
@@ -119,7 +114,6 @@
     <div id="panel-body"></div>
   </aside>
 
-  <!-- ========== HUD：图例 ========== -->
   <section id="hud-left" aria-label="图例">
     <div id="legend" class="glass">
       <div class="hud-title">图例</div>
@@ -127,7 +121,6 @@
     </div>
   </section>
 
-  <!-- ========== HUD：统计 ========== -->
   <section id="hud-right" aria-label="系统统计">
     <div id="stats" class="glass">
       <div id="fps" title="渲染帧率"><span class="dot"></span><b>--</b> FPS</div>
@@ -142,7 +135,6 @@
     </div>
   </section>
 
-  <!-- ========== 工况播放条 ========== -->
   <div id="scenario-bar" aria-label="工况演示控制">
     <div class="sc-head">
       <span id="scenario-title">火情工况演示</span>
@@ -165,7 +157,6 @@
     </div>
   </div>
 
-  <!-- ========== 教学气泡 ========== -->
   <div id="tour-tip" role="dialog" aria-label="教学讲解">
     <div class="tt-head">
       <span id="tour-progress">1 / 12</span>
@@ -181,7 +172,6 @@
     </div>
   </div>
 
-  <!-- ========== 设备信息卡 ========== -->
   <div id="info-card" role="dialog" aria-label="设备信息">
     <div class="ic-head">
       <span id="info-card-kicker">设备详情</span>
@@ -192,7 +182,6 @@
     <div id="info-card-body"></div>
   </div>
 
-  <!-- ========== 帮助弹窗 ========== -->
   <div id="help-modal" role="dialog" aria-modal="true" aria-label="帮助">
     <div class="hm-box">
       <div class="hm-head">
@@ -205,12 +194,10 @@
     </div>
   </div>
 
-  <!-- ========== 2D 原理图 ========== -->
   <div id="schematic" aria-label="系统原理图">
     <canvas id="schematic-canvas"></canvas>
   </div>
 
-  <!-- ========== 手机横屏提示 ========== -->
   <div id="landscape-hint">
     <div class="lh-box">
       <svg viewBox="0 0 64 64" width="52" height="52" aria-hidden="true">
@@ -221,10 +208,8 @@
     </div>
   </div>
 
-  <!-- ========== Toast ========== -->
   <div id="toast-wrap" aria-live="polite"></div>
 
-  <!-- 错误兜底 -->
   <div id="fatal-error" hidden>
     <div class="fe-box">
       <h2>场景初始化失败</h2>
