@@ -1,61 +1,49 @@
-/**
- * 极简事件总线
- * - 同步派发；订阅者异常被隔离，不会打断其它订阅者。
- * - on() 返回取消订阅函数，便于组件销毁。
- */
+/* ========================================================================== 
+ * 事件总线 —— 轻量发布订阅
+ * 支持 on/once/off/emit，回调异常隔离，避免单模块报错拖垮整个应用。
+ * ========================================================================== */
 
-export function createEvents(app) {
+export function createEvents() {
+  /** @type {Map<string, Set<Function>>} */
   const map = new Map();
 
-  function on(type, fn) {
+  function on(name, fn) {
     if (typeof fn !== 'function') return () => {};
-    let set = map.get(type);
-    if (!set) map.set(type, (set = new Set()));
+    let set = map.get(name);
+    if (!set) { set = new Set(); map.set(name, set); }
     set.add(fn);
-    return () => off(type, fn);
+    return () => off(name, fn);
   }
 
-  function off(type, fn) {
-    const set = map.get(type);
-    if (set) {
-      set.delete(fn);
-      if (set.size === 0) map.delete(type);
-    }
+  function once(name, fn) {
+    if (typeof fn !== 'function') return () => {};
+    const wrap = (...args) => { off(name, wrap); fn(...args); };
+    return on(name, wrap);
   }
 
-  function once(type, fn) {
-    const wrapped = (payload) => {
-      off(type, wrapped);
-      fn(payload);
-    };
-    return on(type, wrapped);
+  function off(name, fn) {
+    const set = map.get(name);
+    if (!set) return;
+    if (fn) set.delete(fn);
+    else set.clear();
+    if (set.size === 0) map.delete(name);
   }
 
-  function emit(type, payload) {
-    const set = map.get(type);
-    if (!set || set.size === 0) return;
-    // 复制一份，允许订阅者在回调中增删订阅
+  function emit(name, payload) {
+    const set = map.get(name);
+    if (!set || set.size === 0) return 0;
+    let n = 0;
     for (const fn of Array.from(set)) {
-      try {
-        fn(payload);
-      } catch (err) {
-        console.error(`[events] "${type}" 订阅者异常:`, err);
-        if (type !== 'error') {
-          // 避免错误递归：直接派发但不再捕获
-          try {
-            emit('error', { module: `event:${type}`, err });
-          } catch (_) { /* noop */ }
-        }
+      try { fn(payload); n++; } catch (err) {
+        console.error(`[events] 监听器执行失败 (${name}):`, err);
       }
     }
+    return n;
   }
 
-  function clear(type) {
-    if (type) map.delete(type);
-    else map.clear();
-  }
+  function clear() { map.clear(); }
 
-  return { on, off, once, emit, clear, _map: map };
+  function names() { return Array.from(map.keys()); }
+
+  return { on, once, off, emit, clear, names };
 }
-
-export default createEvents;

@@ -1,49 +1,39 @@
-/**
- * 服务门面（Service Locator）
- * 各功能模块在自己的 init(app) 中注册实现，其它模块只通过 services.get(name) 调用，
- * 从而避免模块之间的静态循环依赖，也让"功能可降级"（未注册时调用方自行判断 has()）。
- */
+/* ==========================================================================
+ * 服务定位器 —— 模块间解耦
+ * 各模块 init(app) 时注册服务；其它模块通过 services.get/call 使用，
+ * 避免直接依赖具体的 app 属性名，也便于延迟加载与降级。
+ * ========================================================================== */
 
-export function createServices(app) {
-  const impls = new Map();
-  const missingWarned = new Set();
+export function createServices() {
+  /** @type {Map<string, any>} */
+  const map = new Map();
 
   function register(name, impl) {
-    impls.set(name, impl);
-    if (app && app.debug) console.debug(`[services] 注册: ${name}`);
+    if (!name) return;
+    map.set(name, impl);
     return impl;
   }
 
-  function get(name) {
-    const impl = impls.get(name);
-    if (!impl && !missingWarned.has(name)) {
-      missingWarned.add(name);
-      console.warn(`[services] 服务未注册: ${name}`);
-    }
-    return impl || null;
+  function get(name, fallback = null) {
+    return map.has(name) ? map.get(name) : fallback;
   }
 
-  function has(name) {
-    return impls.has(name);
-  }
+  function has(name) { return map.has(name); }
 
-  /** 安全调用：服务不存在时返回 fallback，不抛错 */
   function call(name, method, ...args) {
-    const impl = impls.get(name);
-    if (!impl || typeof impl[method] !== 'function') return undefined;
-    try {
-      return impl[method](...args);
-    } catch (err) {
+    const impl = map.get(name);
+    if (!impl) return undefined;
+    const fn = impl[method];
+    if (typeof fn !== 'function') return undefined;
+    try { return fn.apply(impl, args); } catch (err) {
       console.error(`[services] ${name}.${method} 调用失败:`, err);
       return undefined;
     }
   }
 
-  function names() {
-    return Array.from(impls.keys());
-  }
+  function names() { return Array.from(map.keys()); }
 
-  return { register, get, has, call, names, _impls: impls };
+  function remove(name) { map.delete(name); }
+
+  return { register, get, has, call, names, remove };
 }
-
-export default createServices;
