@@ -1,0 +1,19 @@
+# 依赖与临时产物
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+*.tmp
+
+# 测试输出
+docs/shots/
+docs/*.json
+tests/output/
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+
+dist/_main-inlined.js
+dist/bundle.js

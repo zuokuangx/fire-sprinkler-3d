@@ -1,0 +1,10 @@
+# 部署时排除（不影响 Vercel 产物）
+node_modules/
+tools/
+docs/shots/
+*.log
+.git/
+.gitignore
+start.bat
+serve.py
+CONTRACT.md
