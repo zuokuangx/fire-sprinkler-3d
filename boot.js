@@ -1,43 +1,55 @@
 /**
- * 引导加载器：从 gzip 分片加载 three 与 app
+ * 引导加载器：base64 文本分片 → gzip 解码 → 动态 import
  *
- * 为什么：three.js（680KB）+ 应用代码（459KB）共 1.1MB，直接传输体量大。
- * 这里用 gzip 存储（共 ~318KB），浏览器端用 DecompressionStream 解压后
- * 以 Blob URL 动态 import，首次加载额外开销约 50ms，但传输体积降低 70%。
+ * 为什么要分片：three.js（680KB）+ 应用代码（459KB）合计 1.1MB。
+ * 这里各 gzip（共 318KB）、各切 3 片、再转 base64 存为 .txt（共 425KB）。
+ * 浏览器并行拉取 → base64 解码 → 按序拼接 → DecompressionStream 解压 → Blob URL import。
  *
- * 兼容性：DecompressionStream（Chrome 80+ / Safari 16.4+ / Edge 80+）。
- * 不支持时回退到未压缩版（app.js / three.js）。
+ * 兼容：DecompressionStream 需 Chrome/Edge 80+、Safari 16.4+；不支持时回退直连。
  */
 (async function boot() {
+  const PARTS = 3;
   const $ = (id) => document.getElementById(id);
   const log = (m) => { const el = $('loading-text'); if (el) el.textContent = m; };
-  const setBar = (p) => { const el = $('loading-bar'); if (el) el.style.width = Math.round(p * 100) + '%'; };
+  const bar = (p) => { const el = $('loading-bar'); if (el) el.style.width = Math.round(p * 100) + '%'; };
 
-  /** 加载并解压 gz，返回 Blob URL */
-  async function loadGz(url, label, onProgress) {
-    log('加载 ' + label + '…');
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(label + ' HTTP ' + res.status);
-    const total = Number(res.headers.get('content-length')) || 0;
-    let buf;
-    if (onProgress && res.body && total) {
-      const reader = res.body.getReader();
-      const chunks = [];
-      let got = 0;
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-        got += value.length;
-        onProgress(Math.min(0.95, got / total));
-      }
-      const all = new Uint8Array(got);
-      let off = 0;
-      for (const c of chunks) { all.set(c, off); off += c.length; }
-      buf = all.buffer;
-    } else {
-      buf = await res.arrayBuffer();
+  /** base64 → Uint8Array */
+  function b64ToBytes(b64) {
+    const clean = b64.replace(/[\s]/g, '');
+    const bin = atob(clean);
+    const len = bin.length;
+    const out = new Uint8Array(len);
+    for (let i = 0; i < len; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+
+  /** 并行拉取 n 个 .txt 分片，解码后按序拼接 */
+  async function loadParts(prefix, label, onProgress) {
+    let done = 0;
+    const tasks = [];
+    for (let i = 0; i < PARTS; i++) {
+      tasks.push(
+        fetch(prefix + '.p' + i + '.txt')
+          .then((r) => {
+            if (!r.ok) throw new Error(label + ' 分片 ' + i + ' HTTP ' + r.status);
+            return r.text();
+          })
+          .then((t) => {
+            done++;
+            onProgress && onProgress(done / PARTS);
+            return b64ToBytes(t);
+          })
+      );
     }
+    const arrs = await Promise.all(tasks);
+    const total = arrs.reduce((s, a) => s + a.length, 0);
+    const all = new Uint8Array(total);
+    let off = 0;
+    for (const a of arrs) { all.set(a, off); off += a.length; }
+    return all.buffer;
+  }
+
+  async function gunzipToUrl(buf, label) {
     log('解压 ' + label + '…');
     const ds = new DecompressionStream('gzip');
     const stream = new Blob([buf]).stream().pipeThrough(ds);
@@ -45,36 +57,7 @@
     return URL.createObjectURL(new Blob([out], { type: 'text/javascript' }));
   }
 
-  /** 回退：直接用未压缩的 ESM 文件 */
-  async function fallback() {
-    log('使用标准加载模式…');
-    const im = document.createElement('script');
-    im.type = 'importmap';
-    im.textContent = JSON.stringify({
-      imports: {
-        'three': './three.js',
-        'three/addons/controls/OrbitControls.js': './three.js',
-        'three/addons/utils/BufferGeometryUtils.js': './three.js',
-        'three/addons/environments/RoomEnvironment.js': './three.js',
-        'three/addons/postprocessing/EffectComposer.js': './three.js',
-        'three/addons/postprocessing/RenderPass.js': './three.js',
-        'three/addons/postprocessing/UnrealBloomPass.js': './three.js',
-        'three/addons/postprocessing/OutputPass.js': './three.js',
-      },
-    });
-    document.head.appendChild(im);
-    await import('./app.js');
-  }
-
-  try {
-    setBar(0.05);
-    if (typeof DecompressionStream === 'undefined') {
-      await fallback();
-      return;
-    }
-
-    // 1) three
-    const threeUrl = await loadGz('three.js.gz', '三维引擎', (p) => setBar(0.05 + p * 0.35));
+  function importMap(threeUrl) {
     const im = document.createElement('script');
     im.type = 'importmap';
     im.textContent = JSON.stringify({
@@ -90,31 +73,39 @@
       },
     });
     document.head.appendChild(im);
-    setBar(0.45);
+  }
 
-    // 2) app
-    const appUrl = await loadGz('app.js.gz', '应用代码', (p) => setBar(0.45 + p * 0.45));
-    setBar(0.92);
+  async function fallback() {
+    log('使用标准加载模式…');
+    importMap('./three.js');
+    await import('./app.js');
+  }
 
-    // 3) 启动
+  try {
+    bar(0.04);
+    if (typeof DecompressionStream === 'undefined') { await fallback(); return; }
+
+    log('加载三维引擎…');
+    const tBuf = await loadParts('three', '三维引擎', (p) => bar(0.04 + p * 0.34));
+    const tUrl = await gunzipToUrl(tBuf, '三维引擎');
+    importMap(tUrl);
+    bar(0.42);
+
+    log('加载应用代码…');
+    const aBuf = await loadParts('app', '应用代码', (p) => bar(0.42 + p * 0.46));
+    const aUrl = await gunzipToUrl(aBuf, '应用代码');
+    bar(0.92);
+
     log('启动场景…');
-    await import(appUrl);
-    setBar(1);
+    await import(aUrl);
+    bar(1);
   } catch (err) {
-    console.error('[boot] gzip 加载失败，尝试回退:', err);
-    try {
-      await fallback();
-    } catch (err2) {
-      console.error('[boot] 回退也失败:', err2);
-      const box = $('fatal-error');
-      const txt = $('fatal-error-text');
-      if (box) {
-        box.hidden = false;
-        if (txt) txt.textContent = '资源加载失败：' + (err2 && err2.message ? err2.message : err2) +
-          '\n\n请确认通过 HTTP(S) 访问（不能双击 file:// 打开），或使用 dist/index.html 单文件离线版。';
-      }
-      const loading = $('loading');
-      if (loading) loading.style.display = 'none';
+    console.warn('[boot] 分片加载失败，回退:', err);
+    try { await fallback(); } catch (e2) {
+      console.error('[boot] 回退失败:', e2);
+      const box = $('fatal-error'); const txt = $('fatal-error-text');
+      if (box) { box.hidden = false; if (txt) txt.textContent = '资源加载失败：' + (e2.message || e2); }
+      const l = $('loading'); if (l) l.style.display = 'none';
     }
   }
 })();
