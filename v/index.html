@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#080b10" />
+<title>消防水喷淋系统 · 三维可视化教学系统</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="app" data-view="3d" data-device="desktop">
+
+  <div id="scene-host" aria-label="三维场景">
+    <canvas id="scene-canvas" touch-action="none"></canvas>
+  </div>
+
+  <div id="loading">
+    <div class="loading-inner">
+      <div class="loading-title">消防水喷淋系统 · 三维可视化教学系统</div>
+      <div class="loading-track"><div id="loading-bar"></div></div>
+      <div id="loading-text">正在初始化场景…</div>
+    </div>
+  </div>
+
+  <header id="topbar">
+    <div id="brand">
+      <div class="brand-text">
+        <h1>消防水喷淋系统</h1>
+        <p id="brand-sub">湿式自动喷水灭火系统 · 三维教学可视化</p>
+      </div>
+    </div>
+    <nav id="level-switch" aria-label="楼层选择"></nav>
+    <div id="view-switch" role="group" aria-label="视角切换"></div>
+    <div id="top-actions"></div>
+  </header>
+
+  <nav id="rail" aria-label="功能面板">
+    <button type="button" data-tab="layers" aria-pressed="false"><span>图层</span></button>
+    <button type="button" data-tab="devices" aria-pressed="false"><span>设备</span></button>
+    <button type="button" data-tab="hydraulic" aria-pressed="false"><span>水力</span></button>
+    <button type="button" data-tab="learn" aria-pressed="false"><span>教学</span></button>
+    <button type="button" data-tab="settings" aria-pressed="false"><span>设置</span></button>
+  </nav>
+
+  <aside id="panel" aria-label="信息面板">
+    <div id="drawer-handle" aria-hidden="true"></div>
+    <div class="panel-head">
+      <h2 id="panel-title">图层管理</h2>
+      <button type="button" id="panel-close" aria-label="关闭面板">×</button>
+    </div>
+    <div id="panel-body"></div>
+  </aside>
+
+  <section id="hud-left" aria-label="图例">
+    <div id="legend" class="glass">
+      <div class="hud-title">图例</div>
+      <ul id="legend-list"></ul>
+    </div>
+  </section>
+
+  <section id="hud-right" aria-label="系统统计">
+    <div id="stats" class="glass">
+      <div id="fps" title="渲染帧率"><span class="dot"></span><b>--</b> FPS</div>
+      <ul id="stats-list"></ul>
+    </div>
+    <div id="compass" class="glass"></div>
+  </section>
+
+  <div id="scenario-bar" aria-label="工况演示控制">
+    <div class="sc-head">
+      <span id="scenario-title">火情工况演示</span>
+      <button type="button" id="scenario-close" aria-label="关闭">×</button>
+    </div>
+    <div class="sc-track"><div id="scenario-progress"></div></div>
+    <div id="scenario-controls">
+      <div id="scenario-buttons"></div>
+      <div class="sc-right">
+        <span id="scenario-label">待开始</span>
+        <div id="speed-group" role="group" aria-label="倍速"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tour-tip" role="dialog" aria-label="教学讲解">
+    <div class="tt-head">
+      <span id="tour-progress">1 / 15</span>
+      <button type="button" id="tour-close" aria-label="退出">×</button>
+    </div>
+    <h3 id="tour-title">教学导览</h3>
+    <p id="tour-text"></p>
+    <div id="tour-controls">
+      <button type="button" data-tour="prev">上一步</button>
+      <button type="button" data-tour="next" class="primary">下一步</button>
+    </div>
+  </div>
+
+  <div id="info-card" role="dialog" aria-label="设备信息">
+    <div class="ic-head">
+      <span id="info-card-kicker">设备详情</span>
+      <button type="button" id="info-card-close" aria-label="关闭">×</button>
+    </div>
+    <div id="info-card-body"></div>
+  </div>
+
+  <div id="help-modal" role="dialog" aria-modal="true" aria-label="帮助">
+    <div class="hm-box">
+      <div class="hm-head">
+        <h2>操作指南</h2>
+        <button type="button" id="help-close" aria-label="关闭">×</button>
+      </div>
+      <div class="hm-body" id="help-body"></div>
+    </div>
+  </div>
+
+  <div id="schematic" aria-label="系统原理图">
+    <canvas id="schematic-canvas"></canvas>
+  </div>
+
+  <div id="landscape-hint">
+    <div class="lh-box">
+      <p>横屏体验更佳</p>
+      <button type="button" id="landscape-dismiss">我知道了</button>
+    </div>
+  </div>
+
+  <div id="toast-wrap" aria-live="polite"></div>
+
+  <div id="fatal-error" hidden>
+    <div class="fe-box">
+      <h2>场景初始化失败</h2>
+      <p id="fatal-error-text"></p>
+      <button type="button" onclick="location.reload()">重新加载</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="boot.js"></script>
+</body>
+</html>
